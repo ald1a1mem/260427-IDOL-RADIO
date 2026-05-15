@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="icon.png">
+<title>26.0427 IDOL RADIO  SANGWON & XINLONG</title>
+
+<style>
+body { background: #111; color: white; text-align: center; font-family: sans-serif; margin: 0; overflow-x: hidden; }
+:root { --main-color: #5698c3; }
+#title { font-size: 26px; margin: 20px auto; font-weight: bold; line-height: 1.5; max-width: 95%; }
+#top-controls { margin-bottom: 15px; }
+#subtitle-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+#subtitle-controls button { background: var(--main-color); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+#subtitle-controls button:hover { filter: brightness(1.2); }
+#video-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
+#video-container { position: relative; width: min(95vw, 640px); aspect-ratio: 16 / 9; background: black; border-radius: 10px; overflow: hidden; }
+#player, #player iframe { width: 100%; height: 100%; display: block; }
+#subtitle { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 18px; font-family: "Arial Rounded MT Bold", "微軟正黑體", sans-serif; color: white; background: rgba(0,0,0,0.7); padding: 8px 14px; border-radius: 8px; white-space: pre-line; max-width: 90%; width: fit-content; pointer-events: none; z-index: 10; line-height: 1.5; display: none; }
+#exitFsBtn { display: none; position: absolute; right: 20px; bottom: 20px; background: var(--main-color); color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; z-index: 20; }
+#bottom-bar { margin-top: 15px; margin-bottom: 25px; }
+#fullscreenBtn { background: var(--main-color); color: white; border: none; padding: 10px 30px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+#fullscreenBtn:hover { filter: brightness(1.2); }
+#video-container:fullscreen { width: 100vw; height: 100vh; border-radius: 0; }
+#video-container:fullscreen #player, #video-container:fullscreen iframe { width: 100vw; height: 100vh; }
+#video-container:fullscreen #subtitle { font-size: 4vh; bottom: 8vh; }
+#video-container:fullscreen #exitFsBtn { display: block; }
+
+@media (max-width: 768px) {
+  #title { font-size: 18px; padding: 0 15px; margin-top: 18px; margin-bottom: 18px; }
+  #video-container { width: 100vw; border-radius: 0; }
+  #subtitle { font-size: 15px; bottom: 14px; max-width: 92%; padding: 6px 10px; }
+  #subtitle-controls button, #fullscreenBtn { font-size: 14px; padding: 8px 14px; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="title">
+26.0427 IDOL RADIO  SANGWON & XINLONG
+</div>
+
+<div id="top-controls">
+  <div id="subtitle-controls">
+    <button onclick="changeFontSize(2)">放大</button>
+    <button onclick="changeFontSize(-2)">縮小</button>
+    <button onclick="resetFontSize()">復原</button>
+  </div>
+</div>
+
+<div id="video-wrapper">
+  <div id="video-container">
+    <div id="player"></div>
+    <div id="subtitle">字幕載入中...</div>
+    <button id="exitFsBtn" onclick="exitFullScreen()">退出全螢幕</button>
+  </div>
+  <div id="bottom-bar">
+    <button id="fullscreenBtn" onclick="enterFullScreen()">全螢幕</button>
+  </div>
+</div>
+
+<script>
+// 1. 定義變數
+const videoId = "sZGahtEdOq4";
+let player = null;
+
+// 2. 字幕清單 (已修正原本 299 秒處的語法錯誤)
+const subtitles = [
+  { time: 106, text: "SANGWON | 是的，今天的問題" },
+  { time: 109, endTime: 113, text: "XINLONG | 愛的另一種表達是什麼呢" },
+  { time: 119, text: "XINLONG | 想你了 可愛 傻瓜 怎麼了 吃飯了嗎 小心回去" },
+  { time: 126, text: "XINLONG | 要一起撐傘嗎" },
+  { time: 129, text: "SANGWON | 喔 最後那句我很喜歡呢" },
+  { time: 131, text: "SANGWON | 通過愛的另一種表達 可以提問很多瑣碎的小事" },
+  { time: 136, text: "SANGWON | 表面上看似只是過往的問候" },
+  { time: 138, text: "SANGWON | 但其實是關心對方一整天" },
+  { time: 140, text: "SANGWON | 所以從今天開始 為期一周" },
+  { time: 143, text: "XINLONG | 所以從今天開始 為期一周" },
+  { time: 145, text: "XINLONG | 我們也想毫不吝嗇地展示我們的愛" },
+  { time: 149, text: "SANGWON | 你今天過得怎麼樣  你有沒有好好吃飯" },
+  { time: 153, text: "SANGWON | 用我們之間的語言，毫無保留地表達愛" },
+  { time: 156, text: "SANGWON | 讓我們活下去的是愛" },
+  { time: 160, text: "XINLONG | 這裡是以好朋友為主題的廣播節目" },
+  { time: 162, text: "XINLONG | 我是 ALPHA DRIVE ONE 的 鑫隆" },
+  { time: 164, endTime: 165, text: "SANGWON | 我是相沅" },
+  { time: 170, endTime: 175 text: "NOW PLAYING\nNCT WISH - WICHU" },
+  { time: 378, text: "SANGWON | 《親密朋友 廣播社》4月27日星期一開始播音了" },
+  { time: 383, text: "XINLONG | 第一首歌是 NCT WISH《WICHU》" },
+  { time: 387, text: "SANGWON | 好，大家好 我是 ALPHA DRIVE ONE 的相沅" },
+  { time: 390, text: "XINLONG | 我是鑫隆" },
+  { time: 392, text: "SANGWON | 我們 ALPHA DRIVE ONE 的所有成員們" },
+  { time: 397, text: "SANGWON | 為了更高的目標而不斷奔馳、衝刺" },
+  { time: 402, text: "SANGWON | 在這過程中 我們會展現出我們獨特的浪漫和活力" },
+  { time: 406, text: "SANGWON | 就是一支與粉絲們一起享受，並那樣生活的團隊" },
+  { time: 416, text: "SANGWON | 所以從今天開始的一週，由 ALPHA DRIVE ONE 擔任《親密朋友 廣播社》的特別 DJ" },
+  { time: 422, text: "SANGWON | 成員們會輪流打招呼" },
+  { time: 425, text: "SANGWON | 今天和星期三是我和鑫隆" },
+  { time: 428, text: "XINLONG | 對 星期二和星期五是  俊抒、ARNO和相炫" },
+  { time: 431, text: "SANGWON | 星期四 LEO和安信將做為DJ出現" },
+  { time: 435, text: "SANGWON | 請多多指教" },
+  { time: 437, text: "SANGWON | 隆 在廣播中成為了DJ 感想是什麼" },
+  { time: 443, text: "XINLONG | 首先我覺得非常榮幸 而且非常緊張" },
+  { time: 445, text: "XINLONG | 如果成員們都在的話 我會減少緊張感" },
+  { time: 454, text: "XINLONG | 現在用韓語說有點困難" },
+  { time: 459, text: "XINLONG | 哥 你呢" },
+  { time: 460, text: "SANGOWN | 像我這種情況，原本就很想做廣播" },
+  { time: 464, text: "SANGOWN | 現在 已經非常有趣了" },
+  { time: 467, text: "SANGOWN | 噢，覺得會非常非常有趣，而且現在已經覺得非常有趣了" },
+  { time: 474, text: "SANGOWN | 那麼 有想過DJ的暱稱嗎" }
+];
+
+// 3. 載入 YouTube API
+var tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player("player", {
+    height: "360",
+    width: "640",
+    videoId: videoId,
+    playerVars: {
+      'autoplay': 0,
+      'controls': 1,
+      'rel': 0,
+      'modestbranding': 1,
+      'origin': window.location.origin
+    },
+    events: {
+      'onReady': onPlayerReady,
+      'onError': onPlayerError
+    }
+  });
+}
+
+function onPlayerReady(event) {
+  setInterval(updateSubtitle, 200);
+}
+
+function onPlayerError(e) {
+  console.error("播放器出錯，代碼：" + e.data);
+}
+
+// 4. 字幕更新邏輯
+function updateSubtitle(){
+  if(!player || !player.getCurrentTime || typeof player.getCurrentTime !== 'function') return;
+
+  const t = player.getCurrentTime();
+  let text = "";
+
+  for(let i = subtitles.length - 1; i >= 0; i--){
+    const sub = subtitles[i];
+    if(t >= sub.time){
+      if(sub.endTime && t >= sub.endTime) {
+        text = ""; 
+      } else {
+        text = sub.text;
+      }
+      break; 
+    }
+  }
+
+  const subEl = document.getElementById("subtitle");
+  if(text === "") {
+    subEl.style.display = "none";
+  } else {
+    subEl.style.display = "block";
+    subEl.innerText = text;
+  }
+}
+
+// 5. 控制功能
+let currentFontSize = 18;
+function changeFontSize(delta) {
+  currentFontSize += delta;
+  document.getElementById("subtitle").style.fontSize = currentFontSize + "px";
+}
+function resetFontSize() {
+  currentFontSize = 18;
+  document.getElementById("subtitle").style.fontSize = "18px";
+}
+
+function enterFullScreen() {
+  const elem = document.getElementById("video-container");
+  if (elem.requestFullscreen) { elem.requestFullscreen(); }
+  else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+  else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
+}
+
+function exitFullScreen() {
+  if (document.exitFullscreen) { document.exitFullscreen(); }
+  else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+  else if (document.msExitFullscreen) { document.msExitFullscreen(); }
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const subEl = document.getElementById("subtitle");
+  if (document.fullscreenElement) {
+    subEl.style.fontSize = (currentFontSize * 1.5) + "px";
+  } else {
+    subEl.style.fontSize = currentFontSize + "px";
+  }
+});
+</script>
+
+</body>
+</html>
